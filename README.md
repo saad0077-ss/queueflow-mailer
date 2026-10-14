@@ -1,71 +1,215 @@
-# 📬 QueueFlow Mailer — Serverless Email Microservice
+<div align="center">
 
-[![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-black?style=flat&logo=vercel)](https://vercel.com)
-[![Node.js](https://img.shields.io/badge/Runtime-Node.js_18+-green?style=flat&logo=node.js)](https://nodejs.org)
-[![Firebase](https://img.shields.io/badge/Auth-Firebase_Admin_SDK-orange?style=flat&logo=firebase)](https://firebase.google.com)
-[![Resend](https://img.shields.io/badge/Delivery-Resend_API-blue?style=flat)](https://resend.com)
-[![Cost](https://img.shields.io/badge/Hosting_Cost-$0_Free_Tier-brightgreen?style=flat)](#)
+# 📬 QueueFlow Mailer
 
-A high-performance, zero-cost serverless email microservice designed for **QueueFlow** applications. It decouples transactional email dispatching from frontend client apps while completely bypassing paid cloud function tiers.
+### Reliable, queue-powered email delivery — built to scale.
 
-### ✨ Key Features
-- **Patient Verification:** Cryptographically validates Firebase ID tokens (JWT) and generates official Firebase Auth verification links with built-in 60s rate-limiting.
-- **Clinic Admin Onboarding (E1):** Dispatches branded activation invites with pre-configured development (`localhost:5000`) and production URLs.
-- **100% Free Architecture:** Operates entirely within the free tiers of Vercel Serverless, Firebase Spark, and Resend ($0 / No credit card required).
-- **Client Agnostic:** Serves Flutter mobile apps, Flutter web portals, and external services via clean HTTP/REST endpoints.
+*Send thousands of emails without blocking your app, losing messages, or hitting rate limits.*
+
+<br/>
+
+![Status](https://img.shields.io/badge/status-active-brightgreen?style=for-the-badge)
+![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)
+![PRs Welcome](https://img.shields.io/badge/PRs-welcome-ff69b4?style=for-the-badge)
+![Made with Love](https://img.shields.io/badge/made%20with-%E2%9D%A4-red?style=for-the-badge)
+
+[Features](#-features) •
+[How it Works](#-how-it-works) •
+[Getting Started](#-getting-started) •
+[Configuration](#%EF%B8%8F-configuration) •
+[Usage](#-usage) •
+[Roadmap](#-roadmap) •
+[Contributing](#-contributing)
+
+</div>
 
 ---
 
-## ⚡ Live Service Endpoints
+## ✨ Overview
 
-* **Base URL:** `https://queueflow-mailer.vercel.app`
-* **Health Check & Monitor:** `GET /`
-* **Patient Verification:** `POST /api/send-verification` (Gated by Firebase Bearer ID Token)
-* **Clinic Admin Invite:** `POST /api/send-clinic-invite` (Accepts clinic & admin metadata)
+**QueueFlow Mailer** is a queue-based email service that takes the pain out of sending email at scale. Instead of sending messages inline (and slowing down your requests), emails are pushed onto a queue and processed in the background by dedicated workers, with automatic retries, rate limiting, and clear status tracking.
+
+> 💡 **Why a queue?** Sending email is slow and can fail. A queue makes your app fast, your delivery reliable, and your failures recoverable.
 
 ---
 
-## 📁 Repository Structure
+## 🚀 Features
+
+| | Feature | Description |
+|---|---|---|
+| ⚡ | **Non-blocking sends** | Enqueue in milliseconds; delivery happens in the background |
+| 🔁 | **Automatic retries** | Failed emails are retried with backoff, never silently lost |
+| 🚦 | **Rate limiting** | Stay within your SMTP/provider limits |
+| 🧩 | **Templates** | Reusable HTML email templates with dynamic variables |
+| 📊 | **Status tracking** | Know if a message is queued, sent, or failed |
+| 🕒 | **Scheduled delivery** | Send now, or at a time you choose |
+| 🔐 | **Secure by default** | Credentials live in environment variables, never in code |
+| 🧱 | **Easy to extend** | Clean structure that's simple to customize |
+
+---
+
+## 🧠 How it Works
 
 ```
-├── api/
-│   ├── send-verification.js      # Patient email verification handler
-│   └── send-clinic-invite.js     # Clinic admin onboarding invite handler
-├── templates/
-│   ├── verify-email.html         # Patient email HTML template
-│   └── clinic-invite.html        # Clinic admin onboarding invitation template
-├── public/
-│   └── index.html                # Public service monitor page ("● Service Online")
-├── .env.example                  # Environment variables template
-├── .gitignore                    # Ignores node_modules and local secrets
-├── package.json                  # Minimal dependencies (firebase-admin)
-└── vercel.json                   # Asset inclusion configuration for serverless functions
+   ┌──────────┐     ┌─────────────┐     ┌──────────────┐     ┌──────────────┐
+   │ Your App │ ──▶ │    Queue    │ ──▶ │    Worker    │ ──▶ │ SMTP / Email │
+   │ (enqueue)│     │  (pending)  │     │ (process +   │     │   Provider   │
+   └──────────┘     └─────────────┘     │   retry)     │     └──────────────┘
+                                        └──────┬───────┘
+                                               │
+                                    ┌──────────▼──────────┐
+                                    │ Status: sent/failed │
+                                    └─────────────────────┘
 ```
 
----
-
-## 🚀 Environment Variables (Vercel)
-
-Set these in your **Vercel Project Dashboard → Settings → Environment Variables**:
-
-| Variable | Description |
-|---|---|
-| `RESEND_API_KEY` | Your Resend API key (`re_...`) from [resend.com/api-keys](https://resend.com/api-keys) |
-| `FIREBASE_SERVICE_ACCOUNT` | Entire JSON content of your downloaded Firebase Admin SDK private key |
-| `EMAIL_FROM` | `QueueFlow <onboarding@resend.dev>` or your verified custom domain |
+1. **Enqueue** – Your app adds an email job to the queue.
+2. **Process** – A worker picks up the job and builds the message from a template.
+3. **Deliver** – The worker sends it through your SMTP server or provider.
+4. **Track** – Success or failure is recorded; failures are retried automatically.
 
 ---
 
-## 🛠️ Local Development & Deployment
+## 🏁 Getting Started
 
-### Run Locally
+### Prerequisites
+
+- A recent version of your runtime installed
+- An SMTP account or email provider (Gmail, SendGrid, Mailgun, etc.)
+- A queue backend (e.g. Redis), if your setup uses one
+
+### Installation
+
 ```bash
+# 1. Clone the repository
+git clone https://github.com/saad0077-ss/queueflow-mailer.git
+
+# 2. Move into the project
+cd queueflow-mailer
+
+# 3. Install dependencies
 npm install
-npm install -g vercel   # If not already installed
-vercel dev
+
+# 4. Copy the example environment file
+cp .env.example .env
 ```
 
-### Deploy to Production
+### Run it
+
 ```bash
-vercel --prod
+# Start the service
+npm start
+
+# Or run in development mode
+npm run dev
 ```
+
+---
+
+## ⚙️ Configuration
+
+Create a `.env` file in the project root:
+
+```env
+# --- Server ---
+PORT=3000
+
+# --- SMTP ---
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your-email@example.com
+SMTP_PASS=your-app-password
+MAIL_FROM="QueueFlow <no-reply@example.com>"
+
+# --- Queue ---
+REDIS_URL=redis://127.0.0.1:6379
+MAX_RETRIES=3
+RATE_LIMIT_PER_MINUTE=60
+```
+
+> ⚠️ **Never commit your `.env` file.** Make sure it's listed in `.gitignore`.
+
+---
+
+## 📖 Usage
+
+### Queue an email
+
+```js
+await mailer.enqueue({
+  to: "user@example.com",
+  subject: "Welcome to QueueFlow 🎉",
+  template: "welcome",
+  data: { name: "Saad" },
+});
+```
+
+### Check delivery status
+
+```js
+const status = await mailer.status(jobId);
+// → "queued" | "processing" | "sent" | "failed"
+```
+
+---
+
+## 🗂️ Project Structure
+
+```
+queueflow-mailer/
+├── src/
+│   ├── queue/         # Queue setup & job definitions
+│   ├── workers/       # Background email workers
+│   ├── templates/     # HTML email templates
+│   ├── config/        # App & SMTP configuration
+│   └── index.js       # Entry point
+├── .env.example       # Sample environment variables
+├── package.json
+└── README.md
+```
+
+> 📝 *Adjust this tree to match your actual folders.*
+
+---
+
+## 🛣️ Roadmap
+
+- [x] Background queue processing
+- [x] Automatic retries
+- [x] HTML templates
+- [ ] Dashboard for monitoring jobs
+- [ ] Webhook callbacks on delivery
+- [ ] Attachments support
+- [ ] Multi-provider failover
+- [ ] Docker support
+
+---
+
+## 🤝 Contributing
+
+Contributions make the open-source world awesome. Any help is **greatly appreciated**!
+
+1. **Fork** the project
+2. **Create** your branch: `git checkout -b feature/amazing-feature`
+3. **Commit** your changes: `git commit -m "Add amazing feature"`
+4. **Push** to the branch: `git push origin feature/amazing-feature`
+5. **Open** a Pull Request
+
+---
+
+## 📄 License
+
+Distributed under the **MIT License**. See `LICENSE` for more information.
+
+---
+
+<div align="center">
+
+### 👨‍💻 Author
+
+**Saad** · [@saad0077-ss](https://github.com/saad0077-ss)
+
+If you found this project useful, please consider giving it a ⭐
+
+<sub>Built with care to keep your inbox flowing.</sub>
+
+</div>
